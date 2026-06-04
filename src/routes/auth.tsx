@@ -124,6 +124,17 @@ function AuthPage() {
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk"}
                 </Button>
               </form>
+
+              <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/40 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Akun Demo</p>
+                <div className="mt-2 space-y-1 text-sm">
+                  <p><span className="text-muted-foreground">Email:</span> <span className="font-mono">{DEMO_EMAIL}</span></p>
+                  <p><span className="text-muted-foreground">Kata Sandi:</span> <span className="font-mono">{DEMO_PASSWORD}</span></p>
+                </div>
+                <Button type="button" variant="secondary" disabled={busy} onClick={signInDemo} className="mt-3 h-10 w-full">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk sebagai Demo"}
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="signup">
