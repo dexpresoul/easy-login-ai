@@ -76,82 +76,74 @@ ATURAN PENTING:
 Kembalikan HANYA JSON valid sesuai schema. Jangan menulis teks lain.`;
 }
 
-const tools = [
-  {
-    type: "function",
-    function: {
-      name: "submit_questions",
-      description: "Submit array of generated HOTS questions.",
-      parameters: {
-        type: "object",
-        properties: {
-          questions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                question_type: { type: "string", enum: ["multiple_choice", "essay", "true_false"] },
-                bloom_level: { type: "string", enum: ["C1", "C2", "C3", "C4", "C5", "C6"] },
-                question_text: { type: "string" },
-                options: { type: ["array", "null"], items: { type: "string" } },
-                correct_answer: { type: "string" },
-                explanation: { type: "string" },
-              },
-              required: ["question_type", "bloom_level", "question_text", "correct_answer", "explanation"],
-              additionalProperties: false,
-            },
+const geminiFunctionDeclaration = {
+  name: "submit_questions",
+  description: "Submit array of generated HOTS questions.",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      questions: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            question_type: { type: "STRING", enum: ["multiple_choice", "essay", "true_false"] },
+            bloom_level: { type: "STRING", enum: ["C1", "C2", "C3", "C4", "C5", "C6"] },
+            question_text: { type: "STRING" },
+            options: { type: "ARRAY", items: { type: "STRING" }, nullable: true },
+            correct_answer: { type: "STRING" },
+            explanation: { type: "STRING" },
           },
+          required: ["question_type", "bloom_level", "question_text", "correct_answer", "explanation"],
         },
-        required: ["questions"],
-        additionalProperties: false,
       },
     },
+    required: ["questions"],
   },
-];
+};
 
 export const generateQuestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY belum dikonfigurasi");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY belum dikonfigurasi");
 
     const total = data.counts.multiple_choice + data.counts.essay + data.counts.true_false;
     if (total === 0) throw new Error("Jumlah total soal harus lebih dari 0");
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey,
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: "Anda adalah generator soal HOTS yang teliti dan berbasis pedagogi Taksonomi Bloom." }],
+          },
+          contents: [{ role: "user", parts: [{ text: buildPrompt(data) }] }],
+          tools: [{ functionDeclarations: [geminiFunctionDeclaration] }],
+          toolConfig: {
+            functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_questions"] },
+          },
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "Anda adalah generator soal HOTS yang teliti dan berbasis pedagogi Taksonomi Bloom." },
-          { role: "user", content: buildPrompt(data) },
-        ],
-        tools,
-        tool_choice: { type: "function", function: { name: "submit_questions" } },
-      }),
-    });
+    );
 
     if (res.status === 429) throw new Error("Batas permintaan AI terlampaui. Coba lagi beberapa saat.");
-    if (res.status === 402) throw new Error("Kuota AI Lovable habis. Tambahkan kredit di workspace.");
     if (!res.ok) {
       const t = await res.text();
-      throw new Error(`AI Gateway error ${res.status}: ${t.slice(0, 300)}`);
+      throw new Error(`Gemini API error ${res.status}: ${t.slice(0, 300)}`);
     }
 
     const payload = await res.json();
-    const toolCall = payload?.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("AI tidak mengembalikan tool call yang valid.");
-    let parsed: { questions: QuestionOut[] };
-    try {
-      parsed = JSON.parse(toolCall.function.arguments);
-    } catch {
-      throw new Error("Gagal mem-parsing hasil AI.");
-    }
+    const parts = payload?.candidates?.[0]?.content?.parts ?? [];
+    const fnCall = parts.find((p: { functionCall?: { name: string; args: unknown } }) => p.functionCall)?.functionCall;
+    if (!fnCall?.args) throw new Error("AI tidak mengembalikan function call yang valid.");
+    const parsed = fnCall.args as { questions: QuestionOut[] };
 
     const questions = (parsed.questions || []).filter((q) => q.question_text && q.correct_answer);
     if (questions.length === 0) throw new Error("AI tidak menghasilkan soal apa pun.");
