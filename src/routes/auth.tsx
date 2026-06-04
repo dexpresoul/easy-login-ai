@@ -15,6 +15,9 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const DEMO_EMAIL = "demo@soalbloom.id";
+const DEMO_PASSWORD = "demo1234";
+
 function AuthPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
