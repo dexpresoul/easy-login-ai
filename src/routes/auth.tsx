@@ -58,6 +58,27 @@ function AuthPage() {
     navigate({ to: "/app" });
   }
 
+  async function signInDemo() {
+    setBusy(true);
+    let { error } = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+    if (error) {
+      const { error: signUpErr } = await supabase.auth.signUp({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+        options: { emailRedirectTo: `${window.location.origin}/app`, data: { full_name: "Akun Demo" } },
+      });
+      if (signUpErr && !/registered|exist/i.test(signUpErr.message)) {
+        setBusy(false);
+        return toast.error("Gagal masuk demo", { description: signUpErr.message });
+      }
+      ({ error } = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD }));
+    }
+    setBusy(false);
+    if (error) return toast.error("Gagal masuk demo", { description: error.message });
+    toast.success("Masuk sebagai akun demo");
+    navigate({ to: "/app" });
+  }
+
   return (
     <main className="grid min-h-screen md:grid-cols-2">
       {/* Brand side */}
