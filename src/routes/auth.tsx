@@ -113,9 +113,7 @@ function AuthPage() {
                   <p><span className="text-muted-foreground">Email:</span> <span className="font-mono">{DEMO_EMAIL}</span></p>
                   <p><span className="text-muted-foreground">Kata Sandi:</span> <span className="font-mono">{DEMO_PASSWORD}</span></p>
                 </div>
-                <Button type="button" variant="secondary" disabled={busy} onClick={signInDemo} className="mt-3 h-10 w-full">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk sebagai Demo"}
-                </Button>
+                <p className="mt-3 text-xs text-muted-foreground">Salin kredensial di atas ke form Masuk.</p>
               </div>
             </TabsContent>
 
