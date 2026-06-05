@@ -165,6 +165,16 @@ function GeneratePage() {
               />
               <p className="mt-1 text-xs text-muted-foreground">{material.length.toLocaleString("id-ID")} karakter</p>
             </div>
+
+            {material.trim().length > 0 && (
+              <div className="mt-4 rounded-xl border border-border bg-background/60 p-4">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Preview teks hasil parsing</Label>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                  {material.slice(0, 1200)}
+                  {material.length > 1200 ? "…" : ""}
+                </p>
+              </div>
+            )}
           </Section>
 
           <Section title="2. Konteks Materi" desc="Membantu AI menyusun soal sesuai konteks pembelajaran.">
