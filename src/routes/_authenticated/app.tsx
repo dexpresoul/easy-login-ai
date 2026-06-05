@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Sparkles, LayoutDashboard, Wand2, Library, LogOut } from "lucide-react";
+import { Sparkles, LayoutDashboard, Wand2, Library, LogOut, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +16,7 @@ function AppLayout() {
     { to: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/app/generate", label: "Buat Soal", icon: Wand2 },
     { to: "/app/bank", label: "Bank Soal", icon: Library },
+    { to: "/app/profile", label: "Profil", icon: User },
   ];
 
   return (
