@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Upload, FileText, Loader2, Wand2, X, Link as LinkIcon } from "lucide-react";
+import { Upload, FileText, Loader2, Wand2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,6 @@ function GeneratePage() {
   const [gradeLevel, setGradeLevel] = useState("SMA Kelas X");
   const [curriculum, setCurriculum] = useState<"Kurikulum Merdeka" | "Kurikulum 2013" | "Lainnya">("Kurikulum Merdeka");
   const [material, setMaterial] = useState("");
-  const [sourceUrl, setSourceUrl] = useState("");
   const [filename, setFilename] = useState<string | undefined>();
   const [mc, setMc] = useState(5);
   const [essay, setEssay] = useState(2);
@@ -58,35 +57,6 @@ function GeneratePage() {
   const [parsing, setParsing] = useState(false);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  async function onLoadUrl() {
-    if (!sourceUrl.trim()) return toast.error("Masukkan URL artikel terlebih dahulu.");
-    try {
-      const url = new URL(sourceUrl.trim());
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error("URL tidak bisa diakses.");
-      const html = await res.text();
-      const text = html
-        .replace(/<script[\s\S]*?<\/script>/gi, " ")
-        .replace(/<style[\s\S]*?<\/style>/gi, " ")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      if (text.length < 50) {
-        return toast.error("Teks artikel terlalu pendek atau tidak terbaca.");
-      }
-
-      setMaterial(text);
-      if (!title) setTitle(url.hostname.replace(/^www\./, ""));
-      setFilename(url.hostname);
-      toast.success(`Berhasil mengambil ${text.length.toLocaleString("id-ID")} karakter dari URL`);
-    } catch (err: any) {
-      toast.error("Gagal mengambil artikel", { description: err.message });
-    }
-  }
 
   function toggleLevel(c: string) {
     setLevels((prev) => {
@@ -194,17 +164,6 @@ function GeneratePage() {
                 className="mt-1.5 resize-y"
               />
               <p className="mt-1 text-xs text-muted-foreground">{material.length.toLocaleString("id-ID")} karakter</p>
-            </div>
-
-            <div className="mt-4">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Atau masukkan URL artikel</Label>
-              <div className="mt-1.5 flex gap-2">
-                <div className="relative flex-1">
-                  <LinkIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://contoh.com/artikel" className="pl-9" />
-                </div>
-                <Button type="button" variant="outline" onClick={onLoadUrl}>Ambil</Button>
-              </div>
             </div>
 
             {material.trim().length > 0 && (
