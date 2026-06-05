@@ -15,7 +15,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-const DEMO_EMAIL = "demo@soalbloom.id";
+const DEMO_EMAIL = "demo.soalbloom@gmail.com";
 const DEMO_PASSWORD = "demo1234";
 
 function AuthPage() {
@@ -58,26 +58,8 @@ function AuthPage() {
     navigate({ to: "/app" });
   }
 
-  async function signInDemo() {
-    setBusy(true);
-    let { error } = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
-    if (error) {
-      const { error: signUpErr } = await supabase.auth.signUp({
-        email: DEMO_EMAIL,
-        password: DEMO_PASSWORD,
-        options: { emailRedirectTo: `${window.location.origin}/app`, data: { full_name: "Akun Demo" } },
-      });
-      if (signUpErr && !/registered|exist/i.test(signUpErr.message)) {
-        setBusy(false);
-        return toast.error("Gagal masuk demo", { description: signUpErr.message });
-      }
-      ({ error } = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD }));
-    }
-    setBusy(false);
-    if (error) return toast.error("Gagal masuk demo", { description: error.message });
-    toast.success("Masuk sebagai akun demo");
-    navigate({ to: "/app" });
-  }
+
+
 
   return (
     <main className="grid min-h-screen md:grid-cols-2">
@@ -131,9 +113,7 @@ function AuthPage() {
                   <p><span className="text-muted-foreground">Email:</span> <span className="font-mono">{DEMO_EMAIL}</span></p>
                   <p><span className="text-muted-foreground">Kata Sandi:</span> <span className="font-mono">{DEMO_PASSWORD}</span></p>
                 </div>
-                <Button type="button" variant="secondary" disabled={busy} onClick={signInDemo} className="mt-3 h-10 w-full">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk sebagai Demo"}
-                </Button>
+                <p className="mt-3 text-xs text-muted-foreground">Salin kredensial di atas ke form Masuk.</p>
               </div>
             </TabsContent>
 
