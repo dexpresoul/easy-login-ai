@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Mail, Lock, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { ensureDemoAccount } from "@/lib/question-actions.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +23,7 @@ const DEMO_PASSWORD = "demo1234";
 function AuthPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const provisionDemo = useServerFn(ensureDemoAccount);
   const [tab, setTab] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +37,19 @@ function AuthPage() {
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const loginEmail = email.trim();
+    const loginPassword = password;
+
+    if (loginEmail.toLowerCase() === DEMO_EMAIL.toLowerCase()) {
+      try {
+        await provisionDemo({ data: { email: DEMO_EMAIL, password: DEMO_PASSWORD, fullName: "Akun Demo SoalBloom" } });
+      } catch (err: any) {
+        setBusy(false);
+        return toast.error("Gagal masuk", { description: err.message });
+      }
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
     setBusy(false);
     if (error) return toast.error("Gagal masuk", { description: error.message });
     toast.success("Selamat datang kembali!");
@@ -48,7 +63,6 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/app`,
         data: { full_name: fullName },
       },
     });
