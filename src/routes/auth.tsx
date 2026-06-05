@@ -43,13 +43,24 @@ function AuthPage() {
     if (loginEmail.toLowerCase() === DEMO_EMAIL.toLowerCase()) {
       try {
         await provisionDemo({ data: { email: DEMO_EMAIL, password: DEMO_PASSWORD, fullName: "Akun Demo SoalBloom" } });
-      } catch (err: any) {
-        setBusy(false);
-        return toast.error("Gagal masuk", { description: err.message });
+      } catch {}
+    }
+
+    let { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
+
+    if (error && loginEmail.toLowerCase() === DEMO_EMAIL.toLowerCase() && /invalid login credentials/i.test(error.message)) {
+      const signupAttempt = await supabase.auth.signUp({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+        options: { data: { full_name: "Akun Demo SoalBloom" } },
+      });
+
+      if (!signupAttempt.error) {
+        const retry = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+        error = retry.error ?? null;
       }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPassword });
     setBusy(false);
     if (error) return toast.error("Gagal masuk", { description: error.message });
     toast.success("Selamat datang kembali!");
@@ -70,6 +81,27 @@ function AuthPage() {
     if (error) return toast.error("Gagal mendaftar", { description: error.message });
     toast.success("Akun dibuat — selamat datang!");
     navigate({ to: "/app" });
+  }
+
+  async function signInWithGoogle() {
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/app` },
+    });
+    setBusy(false);
+    if (error) toast.error("Gagal masuk dengan Google", { description: error.message });
+  }
+
+  async function sendResetPassword() {
+    if (!email.trim()) return toast.error("Masukkan email terlebih dahulu.");
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) return toast.error("Gagal mengirim reset password", { description: error.message });
+    toast.success("Link reset password telah dikirim.");
   }
 
 
@@ -113,6 +145,9 @@ function AuthPage() {
             </TabsList>
 
             <TabsContent value="signin">
+              <Button type="button" variant="outline" className="mt-6 h-11 w-full" onClick={signInWithGoogle} disabled={busy}>
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk dengan Google"}
+              </Button>
               <form onSubmit={signIn} className="mt-6 space-y-4">
                 <Field id="email" label="Email" icon={Mail}><Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="guru@sekolah.id" /></Field>
                 <Field id="pwd" label="Kata Sandi" icon={Lock}><Input id="pwd" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" /></Field>
@@ -120,6 +155,7 @@ function AuthPage() {
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk"}
                 </Button>
               </form>
+              <button type="button" onClick={sendResetPassword} className="mt-3 text-sm text-muted-foreground hover:text-foreground">Lupa kata sandi?</button>
 
               <div className="mt-6 rounded-lg border border-dashed border-border bg-muted/40 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Akun Demo</p>
