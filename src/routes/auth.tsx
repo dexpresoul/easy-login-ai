@@ -84,13 +84,7 @@ function AuthPage() {
   }
 
   async function signInWithGoogle() {
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/app` },
-    });
-    setBusy(false);
-    if (error) toast.error("Gagal masuk dengan Google", { description: error.message });
+    toast.error("Google login belum aktif", { description: "Aktifkan provider Google di dashboard auth project agar tombol ini bisa digunakan." });
   }
 
   async function sendResetPassword() {
