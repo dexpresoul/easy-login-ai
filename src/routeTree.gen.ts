@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app.profile'
 import { Route as AuthenticatedAppGenerateRouteImport } from './routes/_authenticated/app.generate'
 import { Route as AuthenticatedAppBankRouteImport } from './routes/_authenticated/app.bank'
 import { Route as AuthenticatedAppSetsIdRouteImport } from './routes/_authenticated/app.sets.$id'
@@ -48,6 +49,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppGenerateRoute =
   AuthenticatedAppGenerateRouteImport.update({
     id: '/generate',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/app/bank': typeof AuthenticatedAppBankRoute
   '/app/generate': typeof AuthenticatedAppGenerateRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/sets/$id': typeof AuthenticatedAppSetsIdRoute
 }
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/app/bank': typeof AuthenticatedAppBankRoute
   '/app/generate': typeof AuthenticatedAppGenerateRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/sets/$id': typeof AuthenticatedAppSetsIdRoute
 }
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/app/bank': typeof AuthenticatedAppBankRoute
   '/_authenticated/app/generate': typeof AuthenticatedAppGenerateRoute
+  '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/sets/$id': typeof AuthenticatedAppSetsIdRoute
 }
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/bank'
     | '/app/generate'
+    | '/app/profile'
     | '/app/'
     | '/app/sets/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/app/bank'
     | '/app/generate'
+    | '/app/profile'
     | '/app'
     | '/app/sets/$id'
   id:
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app'
     | '/_authenticated/app/bank'
     | '/_authenticated/app/generate'
+    | '/_authenticated/app/profile'
     | '/_authenticated/app/'
     | '/_authenticated/app/sets/$id'
   fileRoutesById: FileRoutesById
@@ -180,6 +192,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/profile': {
+      id: '/_authenticated/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/generate': {
       id: '/_authenticated/app/generate'
       path: '/generate'
@@ -207,6 +226,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAppRouteChildren {
   AuthenticatedAppBankRoute: typeof AuthenticatedAppBankRoute
   AuthenticatedAppGenerateRoute: typeof AuthenticatedAppGenerateRoute
+  AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppSetsIdRoute: typeof AuthenticatedAppSetsIdRoute
 }
@@ -214,6 +234,7 @@ interface AuthenticatedAppRouteChildren {
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
   AuthenticatedAppBankRoute: AuthenticatedAppBankRoute,
   AuthenticatedAppGenerateRoute: AuthenticatedAppGenerateRoute,
+  AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppSetsIdRoute: AuthenticatedAppSetsIdRoute,
 }
