@@ -1,9 +1,15 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, FileDown, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, FileDown, FileText, Loader2, RefreshCcw, SquarePen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { updateQuestion, regenerateQuestion } from "@/lib/question-actions.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/app/sets/$id")({
   component: SetDetail,
@@ -29,9 +35,23 @@ const TYPE_NAMES: Record<string, string> = {
 
 function SetDetail() {
   const { id } = useParams({ from: "/_authenticated/app/sets/$id" });
+  const saveQuestion = useServerFn(updateQuestion);
+  const regenQuestion = useServerFn(regenerateQuestion);
   const [set, setSet] = useState<SetRow | null>(null);
   const [questions, setQuestions] = useState<QRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<QRow | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [regenBusyId, setRegenBusyId] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    questionText: "",
+    optionA: "",
+    optionB: "",
+    optionC: "",
+    optionD: "",
+    correctAnswer: "",
+    explanation: "",
+  });
 
   useEffect(() => {
     (async () => {
@@ -44,6 +64,73 @@ function SetDetail() {
       setLoading(false);
     })();
   }, [id]);
+
+  function openEdit(q: QRow) {
+    setEditing(q);
+    setForm({
+      questionText: q.question_text,
+      optionA: q.options?.[0] ?? "",
+      optionB: q.options?.[1] ?? "",
+      optionC: q.options?.[2] ?? "",
+      optionD: q.options?.[3] ?? "",
+      correctAnswer: q.correct_answer,
+      explanation: q.explanation,
+    });
+  }
+
+  async function onSaveEdit() {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      const options = editing.question_type === "multiple_choice"
+        ? [form.optionA, form.optionB, form.optionC, form.optionD]
+        : null;
+
+      await saveQuestion({
+        data: {
+          id: editing.id,
+          setId: id,
+          questionText: form.questionText,
+          options,
+          correctAnswer: form.correctAnswer,
+          explanation: form.explanation,
+        },
+      });
+
+      setQuestions((prev) => prev.map((q) => q.id === editing.id ? {
+        ...q,
+        question_text: form.questionText,
+        options,
+        correct_answer: form.correctAnswer,
+        explanation: form.explanation,
+      } : q));
+      setEditing(null);
+      toast.success("Soal diperbarui");
+    } catch (err: any) {
+      toast.error("Gagal menyimpan perubahan", { description: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onRegenerate(q: QRow) {
+    setRegenBusyId(q.id);
+    try {
+      const result = await regenQuestion({ data: { id: q.id, setId: id } });
+      setQuestions((prev) => prev.map((row) => row.id === q.id ? {
+        ...row,
+        question_text: result.question.question_text,
+        options: (result.question.options as string[] | null) ?? null,
+        correct_answer: result.question.correct_answer,
+        explanation: result.question.explanation,
+      } : row));
+      toast.success("Soal berhasil di-regenerate");
+    } catch (err: any) {
+      toast.error("Gagal regenerate soal", { description: err.message });
+    } finally {
+      setRegenBusyId(null);
+    }
+  }
 
   async function exportPdf() {
     if (!set) return;
@@ -170,12 +257,20 @@ function SetDetail() {
       <div className="mt-8 space-y-4">
         {questions.map((q, idx) => (
           <article key={q.id} className="rounded-2xl border border-border bg-card p-5">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
               <span className="font-display font-bold text-muted-foreground">Soal {idx + 1}</span>
               <span className={`inline-flex h-5 items-center rounded bg-bloom-${q.bloom_level.toLowerCase()} px-1.5 font-bold text-foreground/80`}>
                 {q.bloom_level} · {BLOOM_NAMES[q.bloom_level]}
               </span>
               <span className="rounded bg-secondary px-1.5 py-0.5 text-secondary-foreground">{TYPE_NAMES[q.question_type]}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => openEdit(q)}><SquarePen className="mr-2 h-3.5 w-3.5" /> Edit</Button>
+                <Button variant="outline" size="sm" onClick={() => onRegenerate(q)} disabled={regenBusyId === q.id}>
+                  {regenBusyId === q.id ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="mr-2 h-3.5 w-3.5" />}Re-generate
+                </Button>
+              </div>
             </div>
             <p className="font-medium leading-relaxed">{q.question_text}</p>
             {q.question_type === "multiple_choice" && q.options && (
@@ -208,6 +303,45 @@ function SetDetail() {
           </article>
         ))}
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Soal</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Pertanyaan</Label>
+              <Textarea value={form.questionText} onChange={(e) => setForm((prev) => ({ ...prev, questionText: e.target.value }))} rows={5} />
+            </div>
+
+            {editing?.question_type === "multiple_choice" && (
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5"><Label>Opsi A</Label><Input value={form.optionA} onChange={(e) => setForm((prev) => ({ ...prev, optionA: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Opsi B</Label><Input value={form.optionB} onChange={(e) => setForm((prev) => ({ ...prev, optionB: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Opsi C</Label><Input value={form.optionC} onChange={(e) => setForm((prev) => ({ ...prev, optionC: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Opsi D</Label><Input value={form.optionD} onChange={(e) => setForm((prev) => ({ ...prev, optionD: e.target.value }))} /></div>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label>Jawaban Benar</Label>
+              <Input value={form.correctAnswer} onChange={(e) => setForm((prev) => ({ ...prev, correctAnswer: e.target.value }))} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Pembahasan</Label>
+              <Textarea value={form.explanation} onChange={(e) => setForm((prev) => ({ ...prev, explanation: e.target.value }))} rows={4} />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Batal</Button>
+            <Button onClick={onSaveEdit} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
